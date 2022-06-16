@@ -1,40 +1,71 @@
 package src.client;
 
 
+import org.apache.activemq.memory.list.MessageList;
+import src.common.*;
+import org.apache.activemq.ActiveMQConnectionFactory;
+
 import javax.jms.*;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Queue;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
 public class JmsBrokerClient {
     private final String clientName;
-    ConnectionFactory connectionFactory;
-    Connection con;
-    Session session;
-    Queue queue;
-    Topic topic;
-    MessageConsumer queueConsumer;
-
-    public JmsBrokerClient(String clientName) throws JMSException, NamingException {
+    private final Connection con;
+    private final Session session;
+    private final MessageProducer msg_producer;
+    private final MessageConsumer msg_consumer;
+    private final MessageProducer reg_producer;
+    private HashMap<String, MessageConsumer> subscribers = new HashMap<>();
+    private final MessageListener listener = new MessageListener() {
+        @Override
+        public void onMessage(Message msg) {
+            if(msg instanceof TextMessage){
+                String text;
+                try{
+                    text = ((TextMessage) msg).getText();
+                    System.out.println(clientName + ": " + text);
+                }catch (JMSException e){
+                    e.printStackTrace();
+                }
+            } else if (msg instanceof ObjectMessage){
+                ListMessage content = null;
+                try{
+                    content = (ListMessage) ((ObjectMessage) msg).getObject();
+                }catch (JMSException e){
+                    e.printStackTrace();
+                }
+                System.out.println(clientName + "\t List of the stocks: \n" + content.getStocks());
+            }else{
+                System.out.println(clientName + " Invalid message ");
+            }
+        }
+    };
+    public JmsBrokerClient(String clientName) throws JMSException {
         this.clientName = clientName;
 
-        /* TODO: initialize connection, sessions, consumer, producer, etc. */
-        Context ctx = new InitialContext();
-
-        connectionFactory = (ConnectionFactory) ctx.lookup("/jms/TopicConnectionFactory");
-        con = connectionFactory.createConnection();
+        /* initialize connection, sessions, consumer, producer, etc. */
+        ActiveMQConnectionFactory conFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        conFactory.setTrustAllPackages(true);
+        con = conFactory.createConnection();
         con.start();
         session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        queue = (Queue) session.createQueue("myQueue");
-        topic = session.createTopic("Topic_A");
-        queueConsumer = session.createConsumer((Destination) queue);
+        Queue prod_queue = session.createQueue("server_incoming"+this.clientName);
+        msg_producer = session.createProducer(prod_queue);
+        Queue cons_queue = session.createQueue("server_outgoing"+this.clientName);
+        msg_consumer = session.createConsumer(cons_queue);
+        // send register message
+        Queue reg_queue = session.createQueue("register");
+        reg_producer = session.createProducer(reg_queue);
+        reg_producer.send(session.createObjectMessage(new RegisterMessage(clientName)));
+        System.out.println("Client want to register themself as: " + clientName);
+        msg_consumer.setMessageListener(this.listener);
     }
 
     public void requestList() throws JMSException {
@@ -125,8 +156,6 @@ public class JmsBrokerClient {
 
         } catch (JMSException | IOException ex) {
             Logger.getLogger(JmsBrokerClient.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (NamingException e) {
-            e.printStackTrace();
         }
 
     }

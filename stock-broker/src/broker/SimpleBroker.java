@@ -2,23 +2,21 @@ package src.broker;
 
 import src.common.*;
 
+import org.apache.activemq.ActiveMQConnectionFactory;
 import javax.jms.*;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
+import java.lang.reflect.Array;
+import java.util.*;
+import javax.jms.Queue;
 
 
 public class SimpleBroker {
     /* TODO: variables as needed */
-    ConnectionFactory connectionFactory;
-    Connection con;
-    Session session;
-    Queue queue;
-    Topic topic;
-    MessageProducer queueProducer;
+    private Connection connection;
+    private Session session;
+    private HashMap<String, MessageProducer> producers = new HashMap<>();
+    private HashMap<String, MessageConsumer> consumer = new HashMap<>();
+    private HashMap<String, HashMap<String, Integer>> clients = new HashMap<>();
+    private ArrayList<Stock> stocks = new ArrayList<>();
     private final MessageListener listener = new MessageListener() {
         @Override
         public void onMessage(Message msg) {
@@ -28,25 +26,33 @@ public class SimpleBroker {
         }
     };
 
-    public SimpleBroker(List<Stock> stockList) throws JMSException, NamingException {
-
-        Context ctx = new InitialContext();
-
-        connectionFactory = (ConnectionFactory) ctx.lookup("/jms/TopicConnectionFactory");
-        con = connectionFactory.createConnection();
-        con.start();
-        session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        queue = (Queue) session.createQueue("myQueue");
-        topic = session.createTopic("Topic_A");
-        queueProducer = session.createProducer((Destination) queue);
+    public SimpleBroker(List<Stock> stockList) throws JMSException {
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        connectionFactory.setTrustAllPackages(true);
+        // start connection
+        this.connection = connectionFactory.createConnection();
+        this.connection.start();
+        // create session
+        this.session = this.connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        // create register queue
+        Queue registerQueue = this.session.createQueue("register");
+        // create consumer
+        MessageConsumer consumer = this.session.createConsumer(registerQueue);
         for (Stock stock : stockList) {
             /* TODO: prepare stocks as topics */
+            Topic topic = this.session.createTopic(stock.getName());
+            // store producer in the Hashmap
+            this.producers.put(stock.getName(), this.session.createProducer(topic));
         }
+        // store stocks
+        this.stocks.addAll(stockList);
+        consumer.setMessageListener(this.listener);
     }
 
     public void stop() throws JMSException {
-
-        con.stop();
+        this.session.close();
+        this.connection.close();
+        System.exit(0);
     }
 
     public synchronized int buy(String stockName, int amount) throws JMSException {
