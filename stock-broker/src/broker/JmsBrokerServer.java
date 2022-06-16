@@ -1,8 +1,9 @@
-package broker;
+package src.broker;
 
-import  common.Stock;
+import  src.common.Stock;
 
 import javax.jms.JMSException;
+import javax.naming.NamingException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,8 @@ public class JmsBrokerServer {
             Logger.getLogger(JmsBrokerServer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(JmsBrokerServer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (NamingException e) {
+            e.printStackTrace();
         }
     }
 }
