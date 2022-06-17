@@ -9,6 +9,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" exported="" name="Maven: org.apache.activemq:activemq-all:5.17.0" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.activemq:activemq-all:5.17.0" level="project" />
   </component>
 </module>
