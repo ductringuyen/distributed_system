@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="twitter.util.slf4j.api_2.11" type="repository">
+    <properties maven-id="com.twitter:util-slf4j-api_2.11:6.43.0" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/twitter/util-slf4j-api_2.11/6.43.0/util-slf4j-api_2.11-6.43.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.21/slf4j-api-1.7.21.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
